@@ -1,0 +1,84 @@
+import streamlit as st
+import pandas as pd
+
+# 1. Configurazione della Pagina
+st.set_page_config(
+    page_title="Dashboard Studio - Consulenza del Lavoro",
+    page_icon="💼",
+    layout="wide"
+)
+
+# 2. Barra Laterale - Menu Principale
+st.sidebar.title("🏢 Studio Consulenza")
+st.sidebar.caption("Benvenuto, Dottore")
+
+menu = st.sidebar.radio(
+    "Seleziona Sezione:",
+    [
+        "📌 Vista Generale & Scadenze",
+        "🏢 Dichiarazioni Aziende",
+        "👤 Dichiarazioni Privati",
+        "💼 Fatturazione Studio",
+        "🤖 Agente AI Normativo",
+        "📝 Annotazioni & Note Clienti"
+    ]
+)
+
+# 3. Gestione della Sezione: Vista Generale & Scadenze
+if menu == "📌 Vista Generale & Scadenze":
+    st.header("📌 Quadro Generale Scadenze")
+    
+    # Area Caricamento File Excel
+    uploaded_file = st.file_uploader(
+        "📂 Carica un foglio Excel con le scadenze (.xlsx)", 
+        type=["xlsx", "xls"]
+    )
+    
+    if uploaded_file is not None:
+        try:
+            df = pd.read_excel(uploaded_file)
+            st.success("File caricato ed elaborato con successo!")
+            
+            # Filtri rapidi
+            st.subheader("Filtra per Stato o Categoria")
+            col1, col2 = st.columns(2)
+            with col1:
+                ricerca_cliente = st.text_input("🔍 Cerca per Nome Cliente o Codice Fiscale:")
+            
+            if ricerca_cliente:
+                # Cerca in tutte le colonne del foglio
+                df = df[df.astype(str).apply(lambda row: row.str.contains(ricerca_cliente, case=False).any(), axis=1)]
+
+            # Visualizzazione Tabelle
+            st.dataframe(df, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Errore nella lettura del file Excel: {e}")
+    else:
+        st.info("Carica il tuo file Excel per visualizzare e categorizzare i dati automaticamente.")
+
+# 4. Altre Sezioni (Struttura Base)
+elif menu == "🏢 Dichiarazioni Aziende":
+    st.header("🏢 Dichiarazioni e Adempimenti Aziendali")
+    st.write("Sezione dedicata a F24, Cedolini, Uniemens e dichiarazioni aziendali.")
+
+elif menu == "👤 Dichiarazioni Privati":
+    st.header("👤 Dichiarazioni Privati")
+    st.write("Gestione 730, Modello Redditi PF e pratiche personali.")
+
+elif menu == "💼 Fatturazione Studio":
+    st.header("💼 Fatturazione e Parcelle Studio")
+    st.write("Tracciamento delle parcelle emesse e dei pagamenti ricevuti dai clienti.")
+
+elif menu == "🤖 Agente AI Normativo":
+    st.header("🤖 Assistente Normativo AI")
+    st.write("Poni una domanda sulle ultime circolari, Decreti Legge o scadenze tributarie.")
+    domanda = st.text_input("Chiedi all'Agente AI:")
+    if domanda:
+        st.info(f"Ricerca in corso per: '{domanda}'... (Modulo AI in fase di collegamento)")
+
+elif menu == "📝 Annotazioni & Note Clienti":
+    st.header("📝 Note & Annotazioni")
+    st.text_area("Aggiungi una nota rapida su un cliente o una pratica:")
+    if st.button("Salva Nota"):
+        st.success("Nota salvata con successo!")
