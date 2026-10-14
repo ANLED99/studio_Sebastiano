@@ -158,34 +158,4 @@ elif menu == "💼 Fatturazione & Storico Studio":
             else:
                 st.info("Foglio 'SITUAZ_FATTURAZIONE' vuoto o non trovato.")
                 
-        with tab_f2:
-            st.subheader("Andamento Corrispettivi e Produttività Studio")
-            if not df_foglio1.empty:
-                st.write("Tabella riepilogativa dei compensi e storici registrati nei periodi:")
-                st.dataframe(df_foglio1, use_container_width=True)
-            else:
-                st.info("Nessun dato di storico mensile rilevato nel file corrente.")
-    else:
-        st.warning("Carica il file Excel dello studio dalla barra laterale per visualizzare l'area fatturazione.")
-
-# ==========================================
-# SEZIONE 5: SCADENZIARIO & CALENDARIO
-# ==========================================
-elif menu == "📅 Scadenziario & Calendario":
-    st.header("📅 Scadenziario Fiscale & Calendario Studio")
-    
-    col_sc1, col_sc2 = st.columns([2, 1])
-    
-    with col_sc1:
-        st.subheader("Prossime Scadenze in Evidenza")
-        scadenze_fisse = [
-            {"data": "2026-06-30", "adempimento": "Versamento 1° Rata Saldo/Acconto Unico (Imprese/Privati)", "tipo": "Fiscale"},
-            {"data": "2026-07-16", "adempimento": "Versamento IVA Trimestrale / Contributi INPS", "tipo": "IVA/INPS"},
-            {"data": "2026-08-20", "adempimento": "Versamento 2° Rata / Differito con maggiorazione", "tipo": "Fiscale"},
-            {"data": "2026-09-16", "adempimento": "Versamento 3° Rata Unico / Ritenute d'acconto", "tipo": "F24"},
-            {"data": "2026-10-16", "adempimento": "Termine invio 730 / Uniemens", "tipo": "Lavoro/Fiscale"},
-            {"data": "2026-11-16", "adempimento": "Versamento 5° Rata Unico / Acconti IVA", "tipo": "F24"},
-            {"data": "2026-12-16", "adempimento": "Saldo IMU / Acconto IVA mensile", "tipo": "IMU/IVA"}
-        ]
-        df_scadenze = pd.DataFrame(scadenze_fisse)
-        st.dataframe(df_scadenze, use_container_width=
+        with
