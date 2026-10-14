@@ -9,11 +9,13 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inizializzazione della memoria interna (Session State) per note e appuntamenti
+# Inizializzazione della memoria interna (Session State) per note, appuntamenti e cronologia AI
 if "note_archivio" not in st.session_state:
     st.session_state["note_archivio"] = []
 if "appuntamenti" not in st.session_state:
     st.session_state["appuntamenti"] = []
+if "cronologia_ai" not in st.session_state:
+    st.session_state["cronologia_ai"] = []
 
 # 2. Barra Laterale - Menu Principale
 st.sidebar.title("🏢 Studio Sebastiano")
@@ -25,8 +27,9 @@ menu = st.sidebar.radio(
         "📌 Quadro Generale & Excel",
         "👥 Anagrafica Clienti (Aziende & Privati)",
         "📁 Cartelle Dichiarazioni & Pratiche",
+        "💼 Fatturazione & Storico Studio",
         "📅 Scadenziario & Calendario",
-        "🤖 Agente AI Normativo",
+        "🤖 Agente AI Normativo & Cronologia",
         "📝 Note & Annotazioni Studio"
     ]
 )
@@ -39,7 +42,7 @@ uploaded_file = st.sidebar.file_uploader(
     type=["xlsx", "xls"]
 )
 
-# Funzione per leggere i dati se presenti
+# Funzione di utilità per leggere in sicurezza i fogli
 def get_df_safe(file, sheet):
     try:
         return pd.read_excel(file, sheet_name=sheet)
@@ -76,7 +79,6 @@ elif menu == "👥 Anagrafica Clienti (Aziende & Privati)":
     
     tab_az, tab_pr = st.tabs(["🏢 Aziende", "👤 Privati"])
     
-    # Estraiamo i clienti dall'Excel se caricato, altrimenti mostriamo una struttura pulita
     if uploaded_file is not None:
         df_imprese = get_df_safe(uploaded_file, "UNICO imprese")
         df_privati = get_df_safe(uploaded_file, "UNICO 2026  Privati")
@@ -86,12 +88,9 @@ elif menu == "👥 Anagrafica Clienti (Aziende & Privati)":
             if not df_imprese.empty and ' COGN.             ' in df_imprese.columns:
                 aziende_list = df_imprese[' COGN.             '].dropna().unique()
                 st.write(f"Totale aziende registrate: {len(aziende_list)}")
-                # Mostriamo una griglia interattiva pulita anziché il tabellone grezzo
-                for az in aziende_list[:30]: # Mostra i primi per reattività
-                    with st.expander(f"🏢 Azienda: {az}"):
+                for az in aziende_list[:30]:
+                    with st.expander(f"🏢 Azienda: {str(az).strip()}"):
                         st.write("Gestione posizione fiscale, F24 e dichiarazioni collegate.")
-                        if st.button(f"Apri scheda {az}", key=f"az_{az}"):
-                            st.info(f"Accesso alla cartella digitale di {az}")
             else:
                 st.dataframe(df_imprese, use_container_width=True)
                 
@@ -119,9 +118,8 @@ elif menu == "📁 Cartelle Dichiarazioni & Pratiche":
     )
     
     st.markdown(f"### Gestione Cartella: **{categoria}**")
-    st.info("Qui puoi visualizzare lo stato delle pratiche e inserire variazioni manuali o note di avanzamento senza dover modificare l'Excel originale.")
+    st.info("Qui puoi visualizzare lo stato delle pratiche e inserire variazioni manuali o note di avanzamento.")
     
-    # Esempio di modulo interattivo per la modifica di una pratica
     col1, col2 = st.columns(2)
     with col1:
         cli_sel = st.text_input("Nome Cliente / Ragione Sociale:")
@@ -135,7 +133,41 @@ elif menu == "📁 Cartelle Dichiarazioni & Pratiche":
                 st.error("Inserisci il nome del cliente.")
 
 # ==========================================
-# SEZIONE 4: SCADENZIARIO & CALENDARIO
+# SEZIONE 4: FATTURAZIONE & STORICO STUDIO
+# ==========================================
+elif menu == "💼 Fatturazione & Storico Studio":
+    st.header("💼 Fatturazione, Parcelle e Storico Produttività")
+    st.write("Analisi dettagliata della fatturazione ai clienti, corrispettivi e andamento storico della produzione dello studio.")
+    
+    if uploaded_file is not None:
+        # Tentativo di lettura dei fogli di fatturazione/compensi presenti nell'Excel
+        df_fatt = get_df_safe(uploaded_file, "SITUAZ_FATTURAZIONE")
+        df_foglio1 = get_df_safe(uploaded_file, "Foglio1") # Riepilogo mensile/annuale corrispettivi visti nell'analisi
+        
+        tab_f1, tab_f2 = st.tabs(["📊 Situazione Fatture / Clienti", "📈 Storico Mensile & Annuale"])
+        
+        with tab_f1:
+            st.subheader("Riepilogo Posizioni di Fatturazione")
+            if not df_fatt.empty:
+                ricerca_fatt = st.text_input("🔍 Cerca cliente nel registro fatturazione:")
+                if ricerca_fatt:
+                    df_fatt = df_fatt[df_fatt.astype(str).apply(lambda row: row.str.contains(ricerca_fatt, case=False).any(), axis=1)]
+                st.dataframe(df_fatt, use_container_width=True)
+            else:
+                st.info("Il foglio 'SITUAZ_FATTURAZIONE' non è direttamente accessibile o è vuoto. Carica un file valido.")
+                
+        with tab_f2:
+            st.subheader("Andamento Corrispettivi e Produttività Studio")
+            if not df_foglio1.empty:
+                st.write("Tabella riepilogativa dei compensi e storici registrati nei periodi:")
+                st.dataframe(df_foglio1, use_container_width=True)
+            else:
+                st.info("Nessun dato di storico mensile rilevato nel file corrente.")
+    else:
+        st.warning("Carica il file Excel dello studio dalla barra laterale per visualizzare l'area fatturazione e i compensi storici.")
+
+# ==========================================
+# SEZIONE 5: SCADENZIARIO & CALENDARIO
 # ==========================================
 elif menu == "📅 Scadenziario & Calendario":
     st.header("📅 Scadenziario Fiscale & Calendario Studio")
@@ -144,7 +176,6 @@ elif menu == "📅 Scadenziario & Calendario":
     
     with col_sc1:
         st.subheader("Prossime Scadenze in Evidenza")
-        # Scadenze fisse tipiche del consulente del lavoro
         scadenze_fisse = [
             {"data": "2026-06-30", "adempimento": "Versamento 1° Rata Saldo/Acconto Unico (Imprese/Privati)", "tipo": "Fiscale"},
             {"data": "2026-07-16", "adempimento": "Versamento IVA Trimestrale / Contributi INPS", "tipo": "IVA/INPS"},
@@ -154,7 +185,6 @@ elif menu == "📅 Scadenziario & Calendario":
             {"data": "2026-11-16", "adempimento": "Versamento 5° Rata Unico / Acconti IVA", "tipo": "F24"},
             {"data": "2026-12-16", "adempimento": "Saldo IMU / Acconto IVA mensile", "tipo": "IMU/IVA"}
         ]
-        
         df_scadenze = pd.DataFrame(scadenze_fisse)
         st.dataframe(df_scadenze, use_container_width=True)
 
@@ -175,37 +205,55 @@ elif menu == "📅 Scadenziario & Calendario":
             else:
                 st.warning("Inserisci almeno il titolo dell'appuntamento.")
 
-    # Mostra appuntamenti salvati
     if st.session_state["appuntamenti"]:
         st.subheader("📌 Appuntamenti Personali / Studio Inseriti")
         for app in st.session_state["appuntamenti"]:
             st.info(f"**Data:** {app['data']} | **Evento:** {app['titolo']} - *{app['dettagli']}*")
 
 # ==========================================
-# SEZIONE 5: AGENTE AI NORMATIVO
+# SEZIONE 6: AGENTE AI NORMATIVO & CRONOLOGIA
 # ==========================================
-elif menu == "🤖 Agente AI Normativo":
-    st.header("🤖 Assistente Normativo Intelligente")
-    st.write("Poni un quesito sulle normative del lavoro, circolari INPS/INAIL, scadenze fiscali o calcoli contributivi:")
+elif menu == "🤖 Agente AI Normativo & Cronologia":
+    st.header("🤖 Assistente Normativo Intelligente & Cronologia")
     
-    quesito = st.text_area("Scrivi qui la tua domanda o il dubbio normativo:", placeholder="Es: Quali sono i requisiti per l'esonero contributivo assunzioni svantaggiate? O come si calcola...")
+    tab_ai1, tab_ai2 = st.tabs(["💬 Fai un Quesito", "📚 Cronologia Quesiti Passati"])
     
-    if st.button("Interroga Agente AI"):
-        if quesito:
-            with st.spinner("Analisi delle normative e delle circolari in corso..."):
-                # Risposta intelligente basata sul contesto professionale richiesto
-                st.markdown("### 💡 Risposta e Riferimenti Normativi:")
-                st.write(f"""
-                In merito al quesito posto (*"{quesito}"*), l'assistente normativo evidenzia i punti chiave da verificare:
-                1. **Normativa di Riferimento:** Verificare sempre gli ultimi messaggi INPS e decreti attuativi ministeriali vigenti per l'anno in corso.
-                2. **Adempimento Operativo per lo Studio:** Controllare la posizione del cliente all'interno dei fogli di calcolo correlati (es. Uniemens o posizioni dipendenti) per valutare l'applicabilità immediata dell'agegvolazione o della scadenza.
-                3. **Consiglio Pratico:** Si consiglia il riscontro diretto sul cassetto previdenziale/fiscale del cliente tramite i canali Entratel dedicati.
-                """)
+    with tab_ai1:
+        st.write("Poni un quesito sulle normative del lavoro, circolari INPS/INAIL o scadenze fiscali:")
+        quesito = st.text_area("Scrivi qui la tua domanda o il dubbio normativo:", placeholder="Es: Quali sono i requisiti per l'esonero contributivo...")
+        
+        if st.button("Interroga Agente AI"):
+            if quesito:
+                with st.spinner("Analisi delle normative in corso..."):
+                    risposta_generata = f"""In merito al quesito posto (*"{quesito}"*), si evidenzia quanto segue:
+1. **Riferimento Normativo:** Consultare gli ultimi aggiornamenti di prassi amministrativa e messaggi ministeriali in vigore.
+2. **Controllo Operativo:** Verificare la posizione contributiva o fiscale del cliente direttamente nei fogli di calcolo di riferimento dello studio.
+3. **Raccomandazione:** Effettuare riscontro tramite i servizi telematici ufficiali (Entratel/Cassetto Previdenziale)."""
+                    
+                    # Salvataggio in cronologia
+                    st.session_state["cronologia_ai"].append({
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "domanda": quesito,
+                        "risposta": risposta_generata
+                    })
+                    
+                    st.markdown("### 💡 Risposta e Riferimenti:")
+                    st.write(risposta_generata)
+            else:
+                st.warning("Inserisci una domanda valida per procedere.")
+                
+    with tab_ai2:
+        st.subheader("📚 Storico Quesiti Posti all'AI")
+        if st.session_state["cronologia_ai"]:
+            for item in reversed(st.session_state["cronologia_ai"]):
+                with st.expander(f"🕒 {item['timestamp']} - Q: {item['domanda'][:50]}..."):
+                    st.markdown(f"**Domanda:** {item['domanda']}")
+                    st.markdown(f"**Risposta dell'Agente:**\n{item['risposta']}")
         else:
-            st.warning("Inserisci una domanda valida per procedere con l'analisi.")
+            st.info("Nessun quesito registrato in cronologia in questa sessione.")
 
 # ==========================================
-# SEZIONE 6: NOTE & ANNOTAZIONI STUDIO
+# SEZIONE 7: NOTE & ANNOTAZIONI STUDIO
 # ==========================================
 elif menu == "📝 Note & Annotazioni Studio":
     st.header("📝 Blocco Note e Memoria Studio")
@@ -224,9 +272,8 @@ elif menu == "📝 Note & Annotazioni Studio":
         else:
             st.warning("Compila sia il campo cliente che il testo della nota.")
             
-    # Mostra l'archivio note persistente della sessione
     if st.session_state["note_archivio"]:
         st.subheader("📋 Storico Note Annotate")
-        for i, nota in enumerate(reversed(st.session_state["note_archivio"])):
+        for nota in reversed(st.session_state["note_archivio"]):
             with st.expander(f"🕒 {nota['timestamp']} - Cliente: {nota['cliente']}"):
                 st.write(nota['testo'])
