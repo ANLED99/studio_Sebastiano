@@ -239,8 +239,9 @@ elif menu == "🤖 Agente AI Normativo & Cronologia":
                         
                         if api_key:
                             genai.configure(api_key=api_key)
+                            # Utilizzo del modello gemini-1.5-flash ampiamente supportato e gratuito
                             model = genai.GenerativeModel(
-                                model_name="gemini-1.5-pro",
+                                model_name="gemini-1.5-flash",
                                 system_instruction="Sei un assistente esperto in consulenza del lavoro, legislazione sociale, fiscale e tributaria italiana. Rispondi ai quesiti in modo altamente tecnico, preciso, dettagliato ed operativo per uno studio professionale, citando fonti normative, circolari e decreti laddove pertinenti."
                             )
                             response = model.generate_content(quesito)
