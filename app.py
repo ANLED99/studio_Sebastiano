@@ -239,9 +239,9 @@ elif menu == "🤖 Agente AI Normativo & Cronologia":
                         
                         if api_key:
                             genai.configure(api_key=api_key)
-                            # Utilizzo del modello gemini-1.5-flash ampiamente supportato e gratuito
+                            # Aggiornato al modello corrente gemini-2.0-flash
                             model = genai.GenerativeModel(
-                                model_name="gemini-1.5-flash",
+                                model_name="gemini-2.0-flash",
                                 system_instruction="Sei un assistente esperto in consulenza del lavoro, legislazione sociale, fiscale e tributaria italiana. Rispondi ai quesiti in modo altamente tecnico, preciso, dettagliato ed operativo per uno studio professionale, citando fonti normative, circolari e decreti laddove pertinenti."
                             )
                             response = model.generate_content(quesito)
@@ -277,24 +277,4 @@ elif menu == "🤖 Agente AI Normativo & Cronologia":
 # SEZIONE 7: NOTE & ANNOTAZIONI STUDIO
 # ==========================================
 elif menu == "📝 Note & Annotazioni Studio":
-    st.header("📝 Blocco Note e Memoria Studio")
-    
-    c_cliente = st.text_input("Cliente o Pratica di riferimento:")
-    c_testo = st.text_area("Scrivi un'annotazione rapida, un promemoria telefonico o un'istruzione:")
-    
-    if st.button("Memorizza Nota"):
-        if c_cliente and c_testo:
-            st.session_state["note_archivio"].append({
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "cliente": c_cliente,
-                "testo": c_testo
-            })
-            st.success(f"Nota salvata correttamente per '{c_cliente}'!")
-        else:
-            st.warning("Compila sia il campo cliente che il testo della nota.")
-            
-    if st.session_state["note_archivio"]:
-        st.subheader("📋 Storico Note Annotate")
-        for nota in reversed(st.session_state["note_archivio"]):
-            with st.expander(f"🕒 {nota['timestamp']} - Cliente: {nota['cliente']}"):
-                st.write(nota['testo'])
+    st.header("📝 Bl
