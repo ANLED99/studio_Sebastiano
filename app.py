@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 
@@ -32,18 +33,14 @@ uploaded_file = st.sidebar.file_uploader(
     type=["xlsx", "xls"]
 )
 
-# Funzione di supporto per leggere tutti i fogli se il file è caricato
-@st.cache_data
-def load_excel_file(file):
-    return pd.ExcelFile(file)
-
 # 3. Gestione della Sezione: Vista Generale & Scadenze
 if menu == "📌 Vista Generale & Scadenze":
     st.header("📌 Quadro Generale Scadenze Studio")
     
     if uploaded_file is not None:
         try:
-            excel_data = load_excel_file(uploaded_file)
+            # Legge i nomi dei fogli direttamente dal file caricato
+            excel_data = pd.ExcelFile(uploaded_file)
             sheet_names = excel_data.sheet_names
             
             st.success(f"File caricato con successo! Rilevati {len(sheet_names)} fogli di lavoro.")
@@ -73,7 +70,7 @@ elif menu == "🏢 Dichiarazioni Aziende":
     st.header("🏢 Dichiarazioni e Adempimenti Aziendali")
     if uploaded_file is not None:
         try:
-            excel_data = load_excel_file(uploaded_file)
+            excel_data = pd.ExcelFile(uploaded_file)
             sheets_aziende = [s for s in excel_data.sheet_names if any(k in s.lower() for k in ['unico', 'soci', 'professionisti', 'forfettari', 'irap', 'iva', 'cu', '770'])]
             
             if sheets_aziende:
@@ -92,7 +89,7 @@ elif menu == "👤 Dichiarazioni Privati":
     st.header("👤 Dichiarazioni Privati (730 e IMU)")
     if uploaded_file is not None:
         try:
-            excel_data = load_excel_file(uploaded_file)
+            excel_data = pd.ExcelFile(uploaded_file)
             sheets_privati = [s for s in excel_data.sheet_names if any(k in s.lower() for k in ['730', 'privati', 'imu'])]
             
             if sheets_privati:
@@ -111,7 +108,7 @@ elif menu == "💼 Fatturazione Studio":
     st.header("💼 Fatturazione e Parcelle Studio")
     if uploaded_file is not None:
         try:
-            excel_data = load_excel_file(uploaded_file)
+            excel_data = pd.ExcelFile(uploaded_file)
             if 'SITUAZ_FATTURAZIONE' in excel_data.sheet_names:
                 df_fatt = pd.read_excel(uploaded_file, sheet_name='SITUAZ_FATTURAZIONE')
                 st.dataframe(df_fatt, use_container_width=True)
