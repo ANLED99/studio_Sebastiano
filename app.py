@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inizializzazione della memoria interna (Session State) per note, appuntamenti e cronologia AI
+# Inizializzazione della memoria interna (Session State)
 if "note_archivio" not in st.session_state:
     st.session_state["note_archivio"] = []
 if "appuntamenti" not in st.session_state:
@@ -42,7 +42,7 @@ uploaded_file = st.sidebar.file_uploader(
     type=["xlsx", "xls"]
 )
 
-# Funzione di utilità per leggere in sicurezza i fogli
+# Funzione per leggere in sicurezza i fogli
 def get_df_safe(file, sheet):
     try:
         return pd.read_excel(file, sheet_name=sheet)
@@ -56,18 +56,21 @@ if menu == "📌 Quadro Generale & Excel":
     st.header("📌 Quadro Generale Scadenze Studio")
     
     if uploaded_file is not None:
-        excel_data = pd.ExcelFile(uploaded_file)
-        sheet_names = excel_data.sheet_names
-        st.success(f"File caricato correttamente. Fogli disponibili: {len(sheet_names)}")
-        
-        selected_sheet = st.selectbox("Seleziona il registro da consultare:", sheet_names)
-        df = pd.read_excel(uploaded_file, sheet_name=selected_sheet)
-        
-        ricerca = st.text_input("🔍 Filtra rapidamente nella tabella:")
-        if ricerca:
-            df = df[df.astype(str).apply(lambda row: row.str.contains(ricerca, case=False).any(), axis=1)]
+        try:
+            excel_data = pd.ExcelFile(uploaded_file)
+            sheet_names = excel_data.sheet_names
+            st.success(f"File caricato correttamente. Fogli disponibili: {len(sheet_names)}")
             
-        st.dataframe(df, use_container_width=True)
+            selected_sheet = st.selectbox("Seleziona il registro da consultare:", sheet_names)
+            df = pd.read_excel(uploaded_file, sheet_name=selected_sheet)
+            
+            ricerca = st.text_input("🔍 Filtra rapidamente nella tabella:")
+            if ricerca:
+                df = df[df.astype(str).apply(lambda row: row.str.contains(ricerca, case=False).any(), axis=1)]
+                
+            st.dataframe(df, use_container_width=True)
+        except Exception as e:
+            st.error(f"Errore nella lettura del file: {e}")
     else:
         st.info("👈 Carica il file Excel dello studio dalla barra laterale per sbloccare tutti i dati.")
 
@@ -87,7 +90,7 @@ elif menu == "👥 Anagrafica Clienti (Aziende & Privati)":
             st.subheader("Elenco Clienti Aziendali")
             if not df_imprese.empty and ' COGN.             ' in df_imprese.columns:
                 aziende_list = df_imprese[' COGN.             '].dropna().unique()
-                st.write(f"Totale aziende registrate: {len(aziende_list)}")
+                st.write(f"Totale aziende registrate: **{len(aziende_list)}**")
                 for az in aziende_list[:30]:
                     with st.expander(f"🏢 Azienda: {str(az).strip()}"):
                         st.write("Gestione posizione fiscale, F24 e dichiarazioni collegate.")
@@ -98,12 +101,12 @@ elif menu == "👥 Anagrafica Clienti (Aziende & Privati)":
             st.subheader("Elenco Clienti Privati")
             if not df_privati.empty and ' COGN.             ' in df_privati.columns:
                 privati_list = df_privati[' COGN.             '].dropna().unique()
-                st.write(f"Totale clienti privati registrati: {len(privati_list)}")
+                st.write(f"Totale clienti privati registrati: **{len(privati_list)}**")
                 st.dataframe(df_privati[[' COGN.             ', ' NOME                ', 'SITUAZIONE']], use_container_width=True)
             else:
                 st.info("Sezione privati pronta. Carica l'Excel per popolare i dati.")
     else:
-        st.warning("Carica il file Excel dello studio per visualizzare la suddivisione automatica Aziende/Privati.")
+        st.warning("Carica il file Excel dello studio dalla barra laterale per visualizzare l'anagrafica automatica.")
 
 # ==========================================
 # SEZIONE 3: CARTELLE DICHIARAZIONI & PRATICHE
@@ -137,12 +140,11 @@ elif menu == "📁 Cartelle Dichiarazioni & Pratiche":
 # ==========================================
 elif menu == "💼 Fatturazione & Storico Studio":
     st.header("💼 Fatturazione, Parcelle e Storico Produttività")
-    st.write("Analisi dettagliata della fatturazione ai clienti, corrispettivi e andamento storico della produzione dello studio.")
+    st.write("Analisi della fatturazione ai clienti, corrispettivi e andamento storico della produzione dello studio.")
     
     if uploaded_file is not None:
-        # Tentativo di lettura dei fogli di fatturazione/compensi presenti nell'Excel
         df_fatt = get_df_safe(uploaded_file, "SITUAZ_FATTURAZIONE")
-        df_foglio1 = get_df_safe(uploaded_file, "Foglio1") # Riepilogo mensile/annuale corrispettivi visti nell'analisi
+        df_foglio1 = get_df_safe(uploaded_file, "Foglio1")
         
         tab_f1, tab_f2 = st.tabs(["📊 Situazione Fatture / Clienti", "📈 Storico Mensile & Annuale"])
         
@@ -154,7 +156,7 @@ elif menu == "💼 Fatturazione & Storico Studio":
                     df_fatt = df_fatt[df_fatt.astype(str).apply(lambda row: row.str.contains(ricerca_fatt, case=False).any(), axis=1)]
                 st.dataframe(df_fatt, use_container_width=True)
             else:
-                st.info("Il foglio 'SITUAZ_FATTURAZIONE' non è direttamente accessibile o è vuoto. Carica un file valido.")
+                st.info("Foglio 'SITUAZ_FATTURAZIONE' vuoto o non trovato.")
                 
         with tab_f2:
             st.subheader("Andamento Corrispettivi e Produttività Studio")
@@ -164,7 +166,7 @@ elif menu == "💼 Fatturazione & Storico Studio":
             else:
                 st.info("Nessun dato di storico mensile rilevato nel file corrente.")
     else:
-        st.warning("Carica il file Excel dello studio dalla barra laterale per visualizzare l'area fatturazione e i compensi storici.")
+        st.warning("Carica il file Excel dello studio dalla barra laterale per visualizzare l'area fatturazione.")
 
 # ==========================================
 # SEZIONE 5: SCADENZIARIO & CALENDARIO
@@ -186,94 +188,4 @@ elif menu == "📅 Scadenziario & Calendario":
             {"data": "2026-12-16", "adempimento": "Saldo IMU / Acconto IVA mensile", "tipo": "IMU/IVA"}
         ]
         df_scadenze = pd.DataFrame(scadenze_fisse)
-        st.dataframe(df_scadenze, use_container_width=True)
-
-    with col_sc2:
-        st.subheader("➕ Aggiungi Appuntamento")
-        nuovo_app_data = st.date_input("Data appuntamento:", datetime.today())
-        nuovo_app_titolo = st.text_input("Titolo o Cliente:")
-        nuovo_app_nota = st.text_area("Dettagli / Orario:")
-        
-        if st.button("Salva Appuntamento"):
-            if nuovo_app_titolo:
-                st.session_state["appuntamenti"].append({
-                    "data": str(nuovo_app_data),
-                    "titolo": nuovo_app_titolo,
-                    "dettagli": nuovo_app_nota
-                })
-                st.success("Appuntamento aggiunto al calendario!")
-            else:
-                st.warning("Inserisci almeno il titolo dell'appuntamento.")
-
-    if st.session_state["appuntamenti"]:
-        st.subheader("📌 Appuntamenti Personali / Studio Inseriti")
-        for app in st.session_state["appuntamenti"]:
-            st.info(f"**Data:** {app['data']} | **Evento:** {app['titolo']} - *{app['dettagli']}*")
-
-# ==========================================
-# SEZIONE 6: AGENTE AI NORMATIVO & CRONOLOGIA
-# ==========================================
-elif menu == "🤖 Agente AI Normativo & Cronologia":
-    st.header("🤖 Assistente Normativo Intelligente & Cronologia")
-    
-    tab_ai1, tab_ai2 = st.tabs(["💬 Fai un Quesito", "📚 Cronologia Quesiti Passati"])
-    
-    with tab_ai1:
-        st.write("Poni un quesito sulle normative del lavoro, circolari INPS/INAIL o scadenze fiscali:")
-        quesito = st.text_area("Scrivi qui la tua domanda o il dubbio normativo:", placeholder="Es: Quali sono i requisiti per l'esonero contributivo...")
-        
-        if st.button("Interroga Agente AI"):
-            if quesito:
-                with st.spinner("Analisi delle normative in corso..."):
-                    risposta_generata = f"""In merito al quesito posto (*"{quesito}"*), si evidenzia quanto segue:
-1. **Riferimento Normativo:** Consultare gli ultimi aggiornamenti di prassi amministrativa e messaggi ministeriali in vigore.
-2. **Controllo Operativo:** Verificare la posizione contributiva o fiscale del cliente direttamente nei fogli di calcolo di riferimento dello studio.
-3. **Raccomandazione:** Effettuare riscontro tramite i servizi telematici ufficiali (Entratel/Cassetto Previdenziale)."""
-                    
-                    # Salvataggio in cronologia
-                    st.session_state["cronologia_ai"].append({
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                        "domanda": quesito,
-                        "risposta": risposta_generata
-                    })
-                    
-                    st.markdown("### 💡 Risposta e Riferimenti:")
-                    st.write(risposta_generata)
-            else:
-                st.warning("Inserisci una domanda valida per procedere.")
-                
-    with tab_ai2:
-        st.subheader("📚 Storico Quesiti Posti all'AI")
-        if st.session_state["cronologia_ai"]:
-            for item in reversed(st.session_state["cronologia_ai"]):
-                with st.expander(f"🕒 {item['timestamp']} - Q: {item['domanda'][:50]}..."):
-                    st.markdown(f"**Domanda:** {item['domanda']}")
-                    st.markdown(f"**Risposta dell'Agente:**\n{item['risposta']}")
-        else:
-            st.info("Nessun quesito registrato in cronologia in questa sessione.")
-
-# ==========================================
-# SEZIONE 7: NOTE & ANNOTAZIONI STUDIO
-# ==========================================
-elif menu == "📝 Note & Annotazioni Studio":
-    st.header("📝 Blocco Note e Memoria Studio")
-    
-    c_cliente = st.text_input("Cliente o Pratica di riferimento:")
-    c_testo = st.text_area("Scrivi un'annotazione rapida, un promemoria telefonico o un'istruzione:")
-    
-    if st.button("Memorizza Nota"):
-        if c_cliente and c_testo:
-            st.session_state["note_archivio"].append({
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "cliente": c_cliente,
-                "testo": c_testo
-            })
-            st.success(f"Nota salvata correttamente in memoria per '{c_cliente}'!")
-        else:
-            st.warning("Compila sia il campo cliente che il testo della nota.")
-            
-    if st.session_state["note_archivio"]:
-        st.subheader("📋 Storico Note Annotate")
-        for nota in reversed(st.session_state["note_archivio"]):
-            with st.expander(f"🕒 {nota['timestamp']} - Cliente: {nota['cliente']}"):
-                st.write(nota['testo'])
+        st.dataframe(df_scadenze, use_container_width=
