@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -158,4 +159,141 @@ elif menu == "💼 Fatturazione & Storico Studio":
             else:
                 st.info("Foglio 'SITUAZ_FATTURAZIONE' vuoto o non trovato.")
                 
-        with
+        with tab_f2:
+            st.subheader("Andamento Corrispettivi e Produttività Studio")
+            if not df_foglio1.empty:
+                st.write("Tabella riepilogativa dei compensi e storici registrati nei periodi:")
+                st.dataframe(df_foglio1, use_container_width=True)
+            else:
+                st.info("Nessun dato di storico mensile rilevato nel file corrente.")
+    else:
+        st.warning("Carica il file Excel dello studio dalla barra laterale per visualizzare l'area fatturazione.")
+
+# ==========================================
+# SEZIONE 5: SCADENZIARIO & CALENDARIO
+# ==========================================
+elif menu == "📅 Scadenziario & Calendario":
+    st.header("📅 Scadenziario Fiscale & Calendario Studio")
+    
+    col_sc1, col_sc2 = st.columns([2, 1])
+    
+    with col_sc1:
+        st.subheader("Prossime Scadenze in Evidenza")
+        scadenze_fisse = [
+            {"data": "2026-06-30", "adempimento": "Versamento 1° Rata Saldo/Acconto Unico (Imprese/Privati)", "tipo": "Fiscale"},
+            {"data": "2026-07-16", "adempimento": "Versamento IVA Trimestrale / Contributi INPS", "tipo": "IVA/INPS"},
+            {"data": "2026-08-20", "adempimento": "Versamento 2° Rata / Differito con maggiorazione", "tipo": "Fiscale"},
+            {"data": "2026-09-16", "adempimento": "Versamento 3° Rata Unico / Ritenute d'acconto", "tipo": "F24"},
+            {"data": "2026-10-16", "adempimento": "Termine invio 730 / Uniemens", "tipo": "Lavoro/Fiscale"},
+            {"data": "2026-11-16", "adempimento": "Versamento 5° Rata Unico / Acconti IVA", "tipo": "F24"},
+            {"data": "2026-12-16", "adempimento": "Saldo IMU / Acconto IVA mensile", "tipo": "IMU/IVA"}
+        ]
+        df_scadenze = pd.DataFrame(scadenze_fisse)
+        st.dataframe(df_scadenze, use_container_width=True)
+
+    with col_sc2:
+        st.subheader("➕ Aggiungi Appuntamento")
+        nuovo_app_data = st.date_input("Data appuntamento:", datetime.today())
+        nuovo_app_titolo = st.text_input("Titolo o Cliente:")
+        nuovo_app_nota = st.text_area("Dettagli / Orario:")
+        
+        if st.button("Salva Appuntamento"):
+            if nuovo_app_titolo:
+                st.session_state["appuntamenti"].append({
+                    "data": str(nuovo_app_data),
+                    "titolo": nuovo_app_titolo,
+                    "dettagli": nuovo_app_nota
+                })
+                st.success("Appuntamento aggiunto al calendario!")
+            else:
+                st.warning("Inserisci almeno il titolo dell'appuntamento.")
+
+    if st.session_state["appuntamenti"]:
+        st.subheader("📌 Appuntamenti Personali / Studio Inseriti")
+        for app in st.session_state["appuntamenti"]:
+            st.info(f"**Data:** {app['data']} | **Evento:** {app['titolo']} - *{app['dettagli']}*")
+
+# ==========================================
+# SEZIONE 6: AGENTE AI NORMATIVO & CRONOLOGIA
+# ==========================================
+elif menu == "🤖 Agente AI Normativo & Cronologia":
+    st.header("🤖 Assistente Normativo Intelligente & Cronologia")
+    
+    tab_ai1, tab_ai2 = st.tabs(["💬 Fai un Quesito", "📚 Cronologia Quesiti Passati"])
+    
+    with tab_ai1:
+        st.write("Poni qualsiasi dubbio in materia di lavoro, contrattualistica, INPS, INAIL, fisco o adempimenti di studio:")
+        quesito = st.text_area("Scrivi qui il tuo dubbio o quesito professionale:", placeholder="Es: Quali sono i termini per la presentazione del modello... o come si calcola...")
+        
+        if st.button("Interroga Agente AI"):
+            if quesito:
+                with st.spinner("L'Agente sta elaborando la risposta tecnica in tempo reale..."):
+                    try:
+                        import google.generativeai as genai
+                        
+                        api_key = None
+                        if "GEMINI_api_key" in st.secrets:
+                            api_key = st.secrets["GEMINI_api_key"]
+                        elif "GEMINI_API_KEY" in st.secrets:
+                            api_key = st.secrets["GEMINI_API_KEY"]
+                        
+                        if api_key:
+                            genai.configure(api_key=api_key)
+                            model = genai.GenerativeModel(
+                                model_name="gemini-1.5-pro",
+                                system_instruction="Sei un assistente esperto in consulenza del lavoro, legislazione sociale, fiscale e tributaria italiana. Rispondi ai quesiti in modo altamente tecnico, preciso, dettagliato ed operativo per uno studio professionale, citando fonti normative, circolari e decreti laddove pertinenti."
+                            )
+                            response = model.generate_content(quesito)
+                            risposta_generata = response.text
+                        else:
+                            risposta_generata = "⚠️ **Chiave API non configurata nei Secrets di Streamlit.** Inserisci GEMINI_API_KEY nei Secrets per abilitare le risposte generative reali."
+                            
+                    except Exception as e:
+                        risposta_generata = f"Si è verificato un errore durante l'interrogazione dell'AI: {e}"
+
+                    st.session_state["cronologia_ai"].append({
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "domanda": quesito,
+                        "risposta": risposta_generata
+                    })
+                    
+                    st.markdown("### 📋 Risposta dell'Esperto:")
+                    st.markdown(risposta_generata)
+            else:
+                st.warning("Inserisci un quesito valido prima di inviare.")
+                
+    with tab_ai2:
+        st.subheader("📚 Storico Quesiti Posti all'AI")
+        if st.session_state["cronologia_ai"]:
+            for item in reversed(st.session_state["cronologia_ai"]):
+                with st.expander(f"🕒 {item['timestamp']} - Q: {item['domanda'][:60]}..."):
+                    st.markdown(f"**Domanda:**\n{item['domanda']}")
+                    st.markdown(f"**Risposta dell'Agente:**\n{item['risposta']}")
+        else:
+            st.info("Nessun quesito ancora registrato in cronologia.")
+
+# ==========================================
+# SEZIONE 7: NOTE & ANNOTAZIONI STUDIO
+# ==========================================
+elif menu == "📝 Note & Annotazioni Studio":
+    st.header("📝 Blocco Note e Memoria Studio")
+    
+    c_cliente = st.text_input("Cliente o Pratica di riferimento:")
+    c_testo = st.text_area("Scrivi un'annotazione rapida, un promemoria telefonico o un'istruzione:")
+    
+    if st.button("Memorizza Nota"):
+        if c_cliente and c_testo:
+            st.session_state["note_archivio"].append({
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "cliente": c_cliente,
+                "testo": c_testo
+            })
+            st.success(f"Nota salvata correttamente per '{c_cliente}'!")
+        else:
+            st.warning("Compila sia il campo cliente che il testo della nota.")
+            
+    if st.session_state["note_archivio"]:
+        st.subheader("📋 Storico Note Annotate")
+        for nota in reversed(st.session_state["note_archivio"]):
+            with st.expander(f"🕒 {nota['timestamp']} - Cliente: {nota['cliente']}"):
+                st.write(nota['testo'])
